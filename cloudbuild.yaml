@@ -32,11 +32,11 @@ steps:
     args:
       - '-c'
       - |
-        if docker pull gcr.io/$$PROJECT_ID/yocto-builder:latest 2>/dev/null; then
+        if docker pull gcr.io/$PROJECT_ID/yocto-builder:latest 2>/dev/null; then
           echo "Using cached container"
         else
-          docker build -t gcr.io/$$PROJECT_ID/yocto-builder:latest -f Dockerfile.cloudbuild .
-          docker push gcr.io/$$PROJECT_ID/yocto-builder:latest
+          docker build -t gcr.io/$PROJECT_ID/yocto-builder:latest -f Dockerfile.cloudbuild .
+          docker push gcr.io/$PROJECT_ID/yocto-builder:latest
         fi
 
   # Step 3: Initialize sources using your custom manifest
@@ -60,9 +60,9 @@ steps:
     args:
       - '-c'
       - |
-        BUILD_TYPE=$$(cat build_type.txt)
-        if [ "$$BUILD_TYPE" = "PRODUCTION" ]; then
-          gcloud builds submit --config=cloudbuild/build-all.yaml --substitutions=_BUILD_VERSION=$$TAG_NAME
+        BUILD_TYPE=$(cat build_type.txt)
+        if [ "$BUILD_TYPE" = "PRODUCTION" ]; then
+          gcloud builds submit --config=cloudbuild/build-all.yaml --substitutions=_BUILD_VERSION=$TAG_NAME
         else
           gcloud builds submit --config=cloudbuild/build-image.yaml --substitutions=_MACHINE=dx-one-dart-mx8mp,_DISTRO=automotive-infotainment,_IMAGE=core-image-minimal
         fi
