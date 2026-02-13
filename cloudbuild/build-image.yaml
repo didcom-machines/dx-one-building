@@ -14,9 +14,14 @@ steps:
         # Initialize sources if not already done
         if [ ! -d sources/poky ]; then
           echo "Initializing repo..."
-          mkdir -p sources
+          mkdir -p sources/.repo/manifests
+          
+          # Copy manifest from workspace (already checked out by Cloud Build)
+          cp -r .repo/manifests/* sources/.repo/manifests/
+          
           cd sources
-          repo init -u https://github.com/didcom-machines/dx-one-building.git -b main -m .repo/manifests/default.xml
+          # Initialize repo with local manifest
+          repo init -u /workspace/.repo/manifests -m default.xml
           repo sync -j8
         else
           echo "Sources already initialized"
