@@ -16,7 +16,7 @@ steps:
     allowFailure: true
 
   # Step 2: Setup build configuration
-  - name: 'gcr.io/$PROJECT_ID/yocto-builder:latest'
+  - name: 'gcr.io/${PROJECT_ID}/yocto-builder:latest'
     id: 'setup-build'
     args:
       - 'bash'
@@ -46,7 +46,7 @@ steps:
         echo "Configuration ready for ${_MACHINE} / ${_DISTRO} / ${_IMAGE}"
 
   # Step 3: Run bitbake
-  - name: 'gcr.io/$PROJECT_ID/yocto-builder:latest'
+  - name: 'gcr.io/${PROJECT_ID}/yocto-builder:latest'
     id: 'bitbake-build'
     args:
       - 'bash'
