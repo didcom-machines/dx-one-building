@@ -2,6 +2,27 @@
 # Called by main cloudbuild.yaml or manually
 
 steps:
+  # Step 0: Initialize sources using repo
+  - name: 'gcr.io/${PROJECT_ID}/yocto-builder:latest'
+    id: 'init-sources'
+    args:
+      - 'bash'
+      - '-c'
+      - |
+        cd /workspace
+        
+        # Initialize sources if not already done
+        if [ ! -d sources/poky ]; then
+          echo "Initializing repo..."
+          mkdir -p sources
+          cd sources
+          repo init -u https://github.com/didcom-machines/dx-one-building.git -b main -m .repo/manifests/default.xml
+          repo sync -j8
+        else
+          echo "Sources already initialized"
+        fi
+    timeout: 3600s
+
   # Step 1: Restore cache
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'restore-cache'
