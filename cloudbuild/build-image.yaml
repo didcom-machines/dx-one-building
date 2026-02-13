@@ -45,26 +45,25 @@ steps:
       - 'bash'
       - '-c'
       - |
-        cd /workspace
-        
+        cd /workspace        
         # Create build directory with unique name
-        BUILD_NAME="build_${_MACHINE}_${_DISTRO}"
-        mkdir -p $$BUILD_NAME/conf
+        export BUILD_NAME="build_${_MACHINE}_${_DISTRO}"
+        mkdir -p "$$BUILD_NAME/conf"
         
         # Copy and customize configuration
-        cp templates/bblayers.conf.template $$BUILD_NAME/conf/bblayers.conf
-        cp templates/local.conf.template $$BUILD_NAME/conf/local.conf
+        cp templates/bblayers.conf.template "$$BUILD_NAME/conf/bblayers.conf"
+        cp templates/local.conf.template "$$BUILD_NAME/conf/local.conf"
         
         # Set machine, distro, and image
-        sed -i "s/MACHINE ??= .*/MACHINE ??= '${_MACHINE}'/" $$BUILD_NAME/conf/local.conf
-        sed -i "s/DISTRO ?= .*/DISTRO ?= '${_DISTRO}'/" $$BUILD_NAME/conf/local.conf
+        sed -i "s/MACHINE ??= .*/MACHINE ??= '${_MACHINE}'/" "$$BUILD_NAME/conf/local.conf"
+        sed -i "s/DISTRO ?= .*/DISTRO ?= '${_DISTRO}'/" "$$BUILD_NAME/conf/local.conf"
         
         # Add build metadata
-        echo "" >> $$BUILD_NAME/conf/local.conf
-        echo "# Build metadata" >> $$BUILD_NAME/conf/local.conf
-        echo "BUILD_VERSION = \"${_BUILD_VERSION}\"" >> $$BUILD_NAME/conf/local.conf
-        echo "BUILD_DATE = \"$$(date -u +%Y%m%d%H%M%S)\"" >> $$BUILD_NAME/conf/local.conf
-        echo "BUILD_ID = \"$$BUILD_ID\"" >> $$BUILD_NAME/conf/local.conf
+        echo "" >> "$$BUILD_NAME/conf/local.conf"
+        echo "# Build metadata" >> "$$BUILD_NAME/conf/local.conf"
+        echo "BUILD_VERSION = \"${_BUILD_VERSION}\"" >> "$$BUILD_NAME/conf/local.conf"
+        echo "BUILD_DATE = \"$$(date -u +%Y%m%d%H%M%S)\"" >> "$$BUILD_NAME/conf/local.conf"
+        echo "BUILD_ID = \"$$BUILD_ID\"" >> "$$BUILD_NAME/conf/local.conf"
         
         echo "Configuration ready for ${_MACHINE} / ${_DISTRO} / ${_IMAGE}"
 
@@ -76,10 +75,10 @@ steps:
       - '-c'
       - |
         cd /workspace
-        BUILD_NAME="build_${_MACHINE}_${_DISTRO}"
+        export BUILD_NAME="build_${_MACHINE}_${_DISTRO}"
         
         # Source Yocto environment
-        source sources/poky/oe-init-build-env $$BUILD_NAME
+        source sources/poky/oe-init-build-env "$$BUILD_NAME"
         
         echo "========================================="
         echo "Building ${_IMAGE} for ${_MACHINE}"
