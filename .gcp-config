@@ -1,0 +1,10 @@
+# GCP Project Configuration
+GCP_PROJECT_ID=onex-didcom
+GCP_REGION=us-central1
+
+# GCS Buckets
+CACHE_BUCKET=onex-didcom-yocto-cache
+ARTIFACTS_BUCKET=onex-didcom-yocto-artifacts
+
+# Container Registry
+CONTAINER_IMAGE=gcr.io/onex-didcom/yocto-builder:latest

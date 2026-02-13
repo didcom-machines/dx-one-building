@@ -1,0 +1,66 @@
+# Yocto Build Configuration Template
+# This template will be customized during build with actual MACHINE and DISTRO values
+
+# MACHINE and DISTRO Selection
+# These will be replaced by Cloud Build or setup scripts
+# Example machines: myboard-v1, myboard-v2, etc.
+# Example distros: myproject-distro, poky, etc.
+MACHINE ??= '__MACHINE_PLACEHOLDER__'
+DISTRO ?= '__DISTRO_PLACEHOLDER__'
+
+# Development settings
+EXTRA_IMAGE_FEATURES ?= "allow-empty-password empty-root-password allow-root-login debug-tweaks"
+USER_CLASSES ?= "buildstats"
+PATCHRESOLVE = "noop"
+
+# Disk monitoring
+BB_DISKMON_DIRS ??= "\
+    STOPTASKS,${TMPDIR},1G,100K \
+    STOPTASKS,${DL_DIR},1G,100K \
+    STOPTASKS,${SSTATE_DIR},1G,100K \
+    STOPTASKS,/tmp,100M,100K \
+    HALT,${TMPDIR},100M,1K \
+    HALT,${DL_DIR},100M,1K \
+    HALT,${SSTATE_DIR},100M,1K \
+    HALT,/tmp,10M,1K"
+
+# QEMU settings
+PACKAGECONFIG:append:pn-qemu-system-native = " sdl"
+
+# Configuration version
+CONF_VERSION = "2"
+
+# Shared download and sstate directories
+# For Cloud Build, these should point to Cloud Storage mount points
+# For local builds, use /opt or other persistent location
+DL_DIR ?= "${TOPDIR}/../downloads"
+SSTATE_DIR ?= "${TOPDIR}/../sstate-cache"
+
+# Accept Freescale/NXP EULA
+ACCEPT_FSL_EULA = "1"
+
+# Package management format (deb, rpm, or ipk)
+PACKAGE_CLASSES = "package_deb"
+
+# Build history for tracking changes
+INHERIT += "buildhistory"
+BUILDHISTORY_COMMIT = "1"
+
+# Parallelism - adjust based on your build machine
+# For Cloud Build with E2_HIGHCPU_32: 32 cores
+# BB_NUMBER_THREADS ?= "32"
+# PARALLEL_MAKE ?= "-j 32"
+
+# Example: Add custom packages to your image
+# IMAGE_INSTALL:append = " your-package another-package"
+
+# Example: Chromium with Wayland support
+# IMAGE_INSTALL:append = " chromium-ozone-wayland"
+# PACKAGECONFIG:remove:pn-chromium-ozone-wayland = "use-vaapi"
+
+# Example: Enable systemd (if not default in your distro)
+# DISTRO_FEATURES:append = " systemd"
+# VIRTUAL-RUNTIME_init_manager = "systemd"
+
+# Example: Add network utilities
+# IMAGE_INSTALL:append = " iproute2 ethtool iperf3"

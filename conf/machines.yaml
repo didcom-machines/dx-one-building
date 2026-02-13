@@ -1,0 +1,24 @@
+machines:
+  - name: dx-one-dart-mx95
+    description: "DX-ONE DART-MX95 with automotive infotainment features"
+    enabled: true
+    soc_family: imx95
+    base_machine: imx95-var-dart
+    compatible_distros:
+      - automotive-infotainment
+    
+  - name: dx-one-dart-mx8mp
+    description: "DX-ONE DART-MX8M-PLUS automotive infotainment platform"
+    enabled: true
+    soc_family: imx8mp
+    base_machine: imx8mp-var-dart
+    compatible_distros:
+      - automotive-infotainment
+    
+  - name: dx-one-rpi-zero2w
+    description: "Raspberry Pi Zero 2W development platform"
+    enabled: true
+    soc_family: bcm2837
+    base_machine: raspberrypi0-2w-64
+    compatible_distros:
+      - poky

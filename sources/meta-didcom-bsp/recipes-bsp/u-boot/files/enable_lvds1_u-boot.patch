@@ -1,0 +1,99 @@
+u-boot: imx95-var-dart: enable LVDS channel 1
+
+Add a secondary LVDS panel node and enable LVDS channel 1 so U-Boot
+can use the secondary LVDS output for splash/early console on this
+board. This is a board-specific change.
+
+Upstream-Status: Inappropriate [board-specific]
+Signed-off-by: Manuel Monge <manuel.monge@didcom.com.mx>
+
+diff --git a/arch/arm/dts/imx95-var-dart-dt8mcustomboard.dts b/arch/arm/dts/imx95-var-dart-dt8mcustomboard.dts
+index f8ec788cbec..a3dd7a27aca 100644
+--- a/arch/arm/dts/imx95-var-dart-dt8mcustomboard.dts
++++ b/arch/arm/dts/imx95-var-dart-dt8mcustomboard.dts
+@@ -57,6 +57,40 @@
+ 		};
+ 	};
+ 
++	panel_secondary: panel-secondary {
++		compatible = "sgd,gktw70sdae4se", "panel-lvds";
++		backlight = <&lvds_backlight>;
++		width-mm = <153>;
++		height-mm = <87>;
++		label = "gktw70sdae4se";
++		data-mapping = "jeida-24";
++		status = "okay";
++
++		display-timings {
++			native-mode = <&timing1>;
++			timing1: timing1 {
++				clock-frequency = <74250000>;
++				hactive = <800>;
++				vactive = <480>;
++				hback-porch = <40>;
++				hfront-porch = <40>;
++				vback-porch = <29>;
++				vfront-porch = <13>;
++				hsync-len = <48>;
++				vsync-len = <3>;
++				hsync-active = <0>;
++				vsync-active = <0>;
++				de-active = <1>;
++			};
++		};
++
++		port {
++			panel_in_secondary: endpoint {
++				remote-endpoint = <&lvds1_out>;
++			};
++		};
++	};
++
+ 	reg_3p3v: regulator-3p3v {
+ 		compatible = "regulator-fixed";
+ 		regulator-max-microvolt = <3300000>;
+@@ -122,12 +156,32 @@
+ 			};
+ 		};
+ 	};
++
++	channel@1 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		reg = <1>;
++		fsl,data-mapping = "jeida";
++		fsl,data-width = <24>;
++		status = "okay";
++
++		port@1 {
++			reg = <1>;
++			lvds1_out: endpoint {
++				remote-endpoint = <&panel_in_secondary>;
++			};
++		};
++	};
+ };
+ 
+ &ldb0_phy {
+ 	status = "okay";
+ };
+ 
++&ldb1_phy {
++	status = "okay";
++};
++
+ &lpi2c3 {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+@@ -206,6 +260,11 @@
+ 		reg = <0>;
+ 		status = "okay";
+ 	};
++
++	channel@1 {
++		reg = <1>;
++		status = "okay";
++	};
+ };
+ 
+ &usb2 {

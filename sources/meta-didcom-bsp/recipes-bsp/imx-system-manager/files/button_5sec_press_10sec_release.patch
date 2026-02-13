@@ -1,0 +1,338 @@
+system-manager: imx95-var-dart: Power-off button support
+
+Added support for graceful shutdown of the system via a dedicated
+power-off button. Application cores keep powered off until a button press is detected.
+Upon a new button press, while the system is running, it will initiate a graceful shutdown sequence.
+
+Upstream-Status: Inappropriate [project-specific]
+Signed-off-by: Manuel Monge <manuel.monge@didcom.com.mx>
+
+diff --git a/configs/mx95evk/config_lmm.h b/configs/mx95evk/config_lmm.h
+index 7a89fe8..3ff5e09 100755
+--- a/configs/mx95evk/config_lmm.h
++++ b/configs/mx95evk/config_lmm.h
+@@ -96,8 +96,9 @@
+         .name = "AP", \
+         .rpcType = SM_RPC_SCMI, \
+         .rpcInst = 1U, \
+-        .boot[0] = 3U, \
+-        .bootSkip[0] = 1U, \
++        .boot[0] = 0U, \
++        .boot[1] = 0U, \
++        .boot[2] = 0U, \
+         .start = 7U, \
+         .stop = 7U, \
+     }
+diff --git a/devices/MIMX94/sm/dev_sm_bbm.h b/devices/MIMX94/sm/dev_sm_bbm.h
+index 1fe7842..d9a46b1 100755
+--- a/devices/MIMX94/sm/dev_sm_bbm.h
++++ b/devices/MIMX94/sm/dev_sm_bbm.h
+@@ -101,6 +101,7 @@
+ #define DEV_SM_BBM_BOOT_BUTTON    BIT32(1U)  /*!< Button power on */
+ #define DEV_SM_BBM_BOOT_ALARM     BIT32(2U)  /*!< RTC alarm powered on */
+ #define DEV_SM_BBM_BOOT_ROLLOVER  BIT32(3U)  /*!< RTC rollover powered on */
++#define DEV_SM_BBM_SHUTDOWN_BUTTON   BIT32(4U)  /*!< Button shutdown */
+ /** @} */
+ 
+ /* Types */
+diff --git a/devices/MIMX95/sm/dev_sm_bbm.c b/devices/MIMX95/sm/dev_sm_bbm.c
+index 6ecfaaf..e42d014 100755
+--- a/devices/MIMX95/sm/dev_sm_bbm.c
++++ b/devices/MIMX95/sm/dev_sm_bbm.c
+@@ -59,6 +59,7 @@ int32_t DEV_SM_BbmInit(void)
+ {
+     int32_t status = SM_ERR_SUCCESS;
+     uint32_t flags;
++    bbnsm_button_config_t btnConfig;
+ 
+     /* Read status flags */
+     flags = BBNSM_GetStatusFlags(BBNSM);
+@@ -69,6 +70,21 @@ int32_t DEV_SM_BbmInit(void)
+         s_statusFlags = flags;
+     }
+ 
++    /* Configure button: 5 sec turn-on time, no hardware timeout */
++    btnConfig.turnOnTime = 0x2U;    /* 100 msec - will require SW to check 5 sec */
++    btnConfig.turnOffTime = 0x3U;   /* Disabled - no auto power-off */
++    btnConfig.debounceTime = 0U;    /* 50 msec */
++    BBNSM_ButtonSetConfig(BBNSM, &btnConfig);
++
++    /* Enable button interrupts - both press and release 
++     * Bits [7:6] = PWR_ON interrupt enable
++     * Bits [5:4] = PWR_OFF interrupt enable
++     * Pattern: 0b01 = disable/clear, 0b10 = enable
++     */
++    BBNSM->BBNSM_INT_EN |= ((2U << 6) | (2U << 4));  /* Enable PWR_ON and PWR_OFF interrupts */
++    
++    printf("BBM: Button configured - turnOn=100ms, turnOff=disabled, interrupts enabled\n");
++
+     /* Return status */
+     return status;
+ }
+@@ -406,8 +422,9 @@ void DEV_SM_BbmHandler(void)
+             LMM_BbmRtcRolloverEvent(DEV_SM_RTC_BBNSM);
+         }
+ 
+-        /* Handle button */
+-        if ((flags & ((uint32_t) kBBNSM_PWR_OFF_InterruptFlag)) != 0U)
++        /* Handle button press or release */
++        if ((flags & (((uint32_t) kBBNSM_PWR_ON_InterruptFlag) | 
++                      ((uint32_t) kBBNSM_PWR_OFF_InterruptFlag))) != 0U)
+         {
+             LMM_BbmButtonEvent();
+         }
+diff --git a/devices/MIMX95/sm/dev_sm_bbm.h b/devices/MIMX95/sm/dev_sm_bbm.h
+index 24dc6be..b845819 100755
+--- a/devices/MIMX95/sm/dev_sm_bbm.h
++++ b/devices/MIMX95/sm/dev_sm_bbm.h
+@@ -101,6 +101,7 @@
+ #define DEV_SM_BBM_BOOT_BUTTON    BIT32(1U)  /*!< Button power on */
+ #define DEV_SM_BBM_BOOT_ALARM     BIT32(2U)  /*!< RTC alarm powered on */
+ #define DEV_SM_BBM_BOOT_ROLLOVER  BIT32(3U)  /*!< RTC rollover powered on */
++#define DEV_SM_BBM_SHUTDOWN_BUTTON   BIT32(4U)  /*!< Button shutdown */
+ /** @} */
+ 
+ /* Types */
+diff --git a/devices/MIMX95/sm/dev_sm_handlers.c b/devices/MIMX95/sm/dev_sm_handlers.c
+index b0e121c..fec8529 100755
+--- a/devices/MIMX95/sm/dev_sm_handlers.c
++++ b/devices/MIMX95/sm/dev_sm_handlers.c
+@@ -346,6 +346,8 @@ void UsageFault_Handler(const uint32_t *sp)
+ /*--------------------------------------------------------------------------*/
+ void SysTick_Handler(void)
+ {
++    static uint32_t tickCount = 0U;
++    
+     s_smTimeMsec += BOARD_TICK_PERIOD_MSEC;
+ 
+     /* Call system tick */
+@@ -356,6 +358,14 @@ void SysTick_Handler(void)
+ 
+     /* Call board tick */
+     BRD_SM_TimerTick(BOARD_TICK_PERIOD_MSEC);
++    
++    /* Check button timeout every second */
++    tickCount += BOARD_TICK_PERIOD_MSEC;
++    if (tickCount >= 1000U)
++    {
++        LMM_BbmButtonCheck();
++        tickCount = 0U;
++    }
+ }
+ 
+ /*--------------------------------------------------------------------------*/
+diff --git a/devices/simu/sm/dev_sm_bbm.h b/devices/simu/sm/dev_sm_bbm.h
+index 24b9e59..98861bc 100755
+--- a/devices/simu/sm/dev_sm_bbm.h
++++ b/devices/simu/sm/dev_sm_bbm.h
+@@ -97,6 +97,7 @@
+ #define DEV_SM_BBM_BOOT_BUTTON    BIT32(1U)  /*!< Button power on */
+ #define DEV_SM_BBM_BOOT_ALARM     BIT32(2U)  /*!< RTC alarm powered on */
+ #define DEV_SM_BBM_BOOT_ROLLOVER  BIT32(3U)  /*!< RTC rollover powered on */
++#define DEV_SM_BBM_SHUTDOWN_BUTTON   BIT32(4U)  /*!< Button shutdown */
+ /** @} */
+ 
+ /* Types */
+diff --git a/sm/lmm/lmm_bbm.c b/sm/lmm/lmm_bbm.c
+index 27d8c5d..426633f 100755
+--- a/sm/lmm/lmm_bbm.c
++++ b/sm/lmm/lmm_bbm.c
+@@ -42,9 +42,14 @@
+ #include "sm.h"
+ #include "lmm.h"
+ #include "dev_sm_api.h"
++#include "fsl_bbnsm.h"
+ 
+ /* Local defines */
+ 
++/* Local defines */
++
++#define BUTTON_RELEASE_TIMEOUT_SEC  10U  /*!< Time in seconds after button release to shutdown */
++
+ /* Local types */
+ 
+ typedef struct
+@@ -58,6 +63,8 @@ typedef struct
+ /* Local variables */
+ 
+ static lm_rtc_info_t s_rtcInfo[SM_NUM_RTC];
++static uint64_t s_buttonReleaseTime = 0ULL;  /*!< RTC time when button was released */
++static bool s_buttonPressed = false;         /*!< Current button state */
+ 
+ /* Local functions */
+ 
+@@ -263,29 +270,137 @@ void LMM_BbmRtcUpdateEvent(uint32_t rtcId)
+ /*--------------------------------------------------------------------------*/
+ void LMM_BbmButtonEvent(void)
+ {
+-    /* Dispatch for all LM */
+-    for (uint32_t dstLm = 0U; dstLm < SM_NUM_LM; dstLm++)
++    uint32_t flags = BBNSM_GetStatusFlags(BBNSM);
++    
++    printf("BBM: Button event - flags=0x%08X\n", flags);
++    
++    /* Check for button press (PWR_ON) */
++    if ((flags & ((uint32_t) kBBNSM_PWR_ON_InterruptFlag)) != 0U)
+     {
+-        lmm_rpc_trigger_t trigger =
++        printf("BBM: Button PRESSED\n");
++        
++        /* Button was pressed */
++        s_buttonPressed = true;
++        s_buttonReleaseTime = 0ULL;  /* Clear release timer */
++        
++        /* Clear the interrupt flag */
++        BBNSM_ClearStatusFlags(BBNSM, (uint32_t) kBBNSM_PWR_ON_InterruptFlag);
++        
++        /* Dispatch for all LM */
++        for (uint32_t dstLm = 0U; dstLm < SM_NUM_LM; dstLm++)
+         {
+-            .event = LMM_TRIGGER_BUTTON,
+-        };
++            lmm_rpc_trigger_t trigger =
++            {
++                .event = LMM_TRIGGER_BUTTON,
++            };
++            uint32_t lmState = 0U;
++            int32_t errStatus = 0;
++
++            /* Get current LM state */
++            (void) LM_SystemLmStatus(0U, dstLm, &lmState, &errStatus);
++            
++            printf("BBM: LM%u state=%u\n", dstLm, lmState);
++
++            /* Boot LM if currently off (skip LM0/SM) */
++            if ((lmState == LMM_STATE_LM_OFF) && (dstLm != 0U))
++            {
++                lmm_rst_rec_t bootRec = DEV_SM_RST_REC_BBM;
++
++                /* Reason is BBM button */
++                bootRec.errId = DEV_SM_BBM_BOOT_BUTTON;
++                bootRec.validErr = true;
++                
++                printf("BBM: Booting LM%u...\n", dstLm);
++                (void) LMM_SystemLmBoot(0U, 0U, dstLm, &bootRec);
++            }
+ 
+-        /* Boot LM */
+-        if ((g_lmmConfig[dstLm].autoBoot == LMM_AUTO_BUTTON)
+-            || (g_lmmConfig[dstLm].autoBoot == LMM_AUTO_BOTH))
++            /* Send notification */
++            (void) LMM_RpcNotificationTrigger(dstLm, &trigger);
++        }
++    }
++    
++    /* Check for button release (PWR_OFF) */
++    if ((flags & ((uint32_t) kBBNSM_PWR_OFF_InterruptFlag)) != 0U)
++    {
++        printf("BBM: Button RELEASED\n");
++        
++        /* Button was released - start 10-second timeout */
++        if (s_buttonPressed)
+         {
+-            lmm_rst_rec_t bootRec = DEV_SM_RST_REC_BBM;
+-
+-            /* Reason is BBM button */
+-            bootRec.errId = DEV_SM_BBM_BOOT_BUTTON;
+-            bootRec.validErr = true;
+-
+-            (void) LMM_SystemLmBoot(0U, 0U, dstLm, &bootRec);
++            uint64_t currentTime = 0ULL;
++            
++            /* Get current RTC time */
++            (void) SM_BBMRTCTIMEGET(0U, &currentTime, false);
++            s_buttonReleaseTime = currentTime;
++            s_buttonPressed = false;
++            
++            printf("BBM: Starting 10-second shutdown timer (RTC=%llu)\n", currentTime);
+         }
++        
++        /* Clear the interrupt flag */
++        BBNSM_ClearStatusFlags(BBNSM, (uint32_t) kBBNSM_PWR_OFF_InterruptFlag);
++    }
++}
+ 
+-        /* Send notification */
+-        (void) LMM_RpcNotificationTrigger(dstLm, &trigger);
++/*--------------------------------------------------------------------------*/
++/* Check button release timeout                                             */
++/*--------------------------------------------------------------------------*/
++void LMM_BbmButtonCheck(void)
++{
++    /* Only check if button was released and timer is active */
++    if ((s_buttonReleaseTime != 0ULL) && !s_buttonPressed)
++    {
++        uint64_t currentTime = 0ULL;
++        uint64_t elapsedSec = 0ULL;
++        
++        /* Get current RTC time */
++        (void) SM_BBMRTCTIMEGET(0U, &currentTime, false);
++        
++        /* Calculate elapsed time since button release */
++        if (currentTime >= s_buttonReleaseTime)
++        {
++            elapsedSec = currentTime - s_buttonReleaseTime;
++            
++            /* Log countdown every second */
++            if ((elapsedSec > 0ULL) && (elapsedSec < BUTTON_RELEASE_TIMEOUT_SEC))
++            {
++                printf("BBM: Shutdown timer: %llu/%u seconds\n", 
++                       elapsedSec, BUTTON_RELEASE_TIMEOUT_SEC);
++            }
++            
++            /* Check if 10 seconds have elapsed */
++            if (elapsedSec >= BUTTON_RELEASE_TIMEOUT_SEC)
++            {
++                printf("BBM: Shutdown timer EXPIRED - requesting graceful shutdown\n");
++                
++                /* Timeout expired - request graceful shutdown */
++                for (uint32_t dstLm = 0U; dstLm < SM_NUM_LM; dstLm++)
++                {
++                    uint32_t lmState = 0U;
++                    int32_t errStatus = 0;
++
++                    /* Get current LM state */
++                    (void) LM_SystemLmStatus(0U, dstLm, &lmState, &errStatus);
++
++                    /* Shutdown LM if currently running (skip LM0/SM) */
++                    if ((lmState == LMM_STATE_LM_ON) && (dstLm != 0U))
++                    {
++                        lmm_rst_rec_t shutdownRec = DEV_SM_RST_REC_BBM;
++
++                        /* Reason is BBM button */
++                        shutdownRec.errId = DEV_SM_BBM_SHUTDOWN_BUTTON;
++                        shutdownRec.validErr = true;
++                        
++                        printf("BBM: Shutting down LM%u...\n", dstLm);
++                        (void) LMM_SystemLmShutdown(0U, 0U, dstLm, true, 
++                            &shutdownRec);
++                    }
++                }
++                
++                /* Clear release timer */
++                s_buttonReleaseTime = 0ULL;
++            }
++        }
+     }
+ }
+ 
+diff --git a/sm/lmm/lmm_bbm.h b/sm/lmm/lmm_bbm.h
+index 937745c..a3d355e 100755
+--- a/sm/lmm/lmm_bbm.h
++++ b/sm/lmm/lmm_bbm.h
+@@ -298,6 +298,15 @@ void LMM_BbmRtcUpdateEvent(uint32_t rtcId);
+  */
+ void LMM_BbmButtonEvent(void);
+ 
++/*!
++ * Check button release timeout.
++ *
++ * This function checks if button has been released for 10 seconds
++ * and initiates graceful shutdown if timeout expires. Should be called
++ * periodically (e.g., from SysTick handler).
++ */
++void LMM_BbmButtonCheck(void);
++
+ #endif /* LMM_BBM_H */
+ 
+ /** @} */

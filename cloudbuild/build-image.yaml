@@ -1,0 +1,106 @@
+# Build a single image configuration
+# Called by main cloudbuild.yaml or manually
+
+steps:
+  # Step 1: Restore cache
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'restore-cache'
+    args: ['-m', 'rsync', '-r', 'gs://${PROJECT_ID}-yocto-cache/sstate-cache/', 'sstate-cache/']
+    timeout: 1800s
+    allowFailure: true
+
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'restore-downloads'
+    args: ['-m', 'rsync', '-r', 'gs://${PROJECT_ID}-yocto-cache/downloads/', 'downloads/']
+    timeout: 1800s
+    allowFailure: true
+
+  # Step 2: Setup build configuration
+  - name: 'gcr.io/$PROJECT_ID/yocto-builder:latest'
+    id: 'setup-build'
+    args:
+      - 'bash'
+      - '-c'
+      - |
+        cd /workspace
+        
+        # Create build directory with unique name
+        BUILD_NAME="build_${_MACHINE}_${_DISTRO}"
+        mkdir -p $BUILD_NAME/conf
+        
+        # Copy and customize configuration
+        cp templates/bblayers.conf.template $BUILD_NAME/conf/bblayers.conf
+        cp templates/local.conf.template $BUILD_NAME/conf/local.conf
+        
+        # Set machine, distro, and image
+        sed -i "s/MACHINE ??= .*/MACHINE ??= '${_MACHINE}'/" $BUILD_NAME/conf/local.conf
+        sed -i "s/DISTRO ?= .*/DISTRO ?= '${_DISTRO}'/" $BUILD_NAME/conf/local.conf
+        
+        # Add build metadata
+        echo "" >> $BUILD_NAME/conf/local.conf
+        echo "# Build metadata" >> $BUILD_NAME/conf/local.conf
+        echo "BUILD_VERSION = \"${_BUILD_VERSION}\"" >> $BUILD_NAME/conf/local.conf
+        echo "BUILD_DATE = \"$(date -u +%Y%m%d%H%M%S)\"" >> $BUILD_NAME/conf/local.conf
+        echo "BUILD_ID = \"$BUILD_ID\"" >> $BUILD_NAME/conf/local.conf
+        
+        echo "Configuration ready for ${_MACHINE} / ${_DISTRO} / ${_IMAGE}"
+
+  # Step 3: Run bitbake
+  - name: 'gcr.io/$PROJECT_ID/yocto-builder:latest'
+    id: 'bitbake-build'
+    args:
+      - 'bash'
+      - '-c'
+      - |
+        cd /workspace
+        BUILD_NAME="build_${_MACHINE}_${_DISTRO}"
+        
+        # Source Yocto environment
+        source sources/poky/oe-init-build-env $BUILD_NAME
+        
+        echo "========================================="
+        echo "Building ${_IMAGE} for ${_MACHINE}"
+        echo "DISTRO: ${_DISTRO}"
+        echo "Build: $BUILD_ID"
+        echo "========================================="
+        
+        # Build the image
+        bitbake ${_IMAGE}
+        
+        # Show results
+        echo "Build completed!"
+        ls -lh tmp/deploy/images/${_MACHINE}/
+    timeout: 14400s
+
+  # Step 4: Save cache
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'save-cache'
+    args: ['-m', 'rsync', '-r', 'sstate-cache/', 'gs://${PROJECT_ID}-yocto-cache/sstate-cache/']
+    timeout: 1800s
+
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'save-downloads'
+    args: ['-m', 'rsync', '-r', 'downloads/', 'gs://${PROJECT_ID}-yocto-cache/downloads/']
+    timeout: 1800s
+
+# Store artifacts
+artifacts:
+  objects:
+    location: 'gs://${PROJECT_ID}-yocto-artifacts/${_BUILD_TYPE}/${_BUILD_VERSION}/${_MACHINE}_${_DISTRO}'
+    paths:
+      - 'build_${_MACHINE}_${_DISTRO}/tmp/deploy/images/${_MACHINE}/*.wic*'
+      - 'build_${_MACHINE}_${_DISTRO}/tmp/deploy/images/${_MACHINE}/*.tar.*'
+      - 'build_${_MACHINE}_${_DISTRO}/tmp/deploy/images/${_MACHINE}/*.manifest'
+
+substitutions:
+  _MACHINE: 'imx8mp-var-dart'
+  _DISTRO: 'fsl-imx-xwayland'
+  _IMAGE: 'core-image-minimal'
+  _BUILD_VERSION: 'dev'
+  _BUILD_TYPE: 'validation'
+
+timeout: '18000s'
+options:
+  machineType: 'E2_HIGHCPU_32'
+  diskSizeGb: 500
+  logging: CLOUD_LOGGING_ONLY

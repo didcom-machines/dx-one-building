@@ -1,0 +1,91 @@
+system-manager: imx95-var-dart: Power-off button support
+
+Added support for graceful shutdown of the system via a dedicated
+power-off button. When the button is pressed, if the system is
+running, it will initiate a graceful shutdown sequence.
+
+Upstream-Status: Inappropriate [board-specific]
+Signed-off-by: Manuel Monge <manuel.monge@didcom.com.mx>
+
+diff --git a/devices/MIMX94/sm/dev_sm_bbm.h b/devices/MIMX94/sm/dev_sm_bbm.h
+index 1fe7842..d9a46b1 100755
+--- a/devices/MIMX94/sm/dev_sm_bbm.h
++++ b/devices/MIMX94/sm/dev_sm_bbm.h
+@@ -101,6 +101,7 @@
+ #define DEV_SM_BBM_BOOT_BUTTON    BIT32(1U)  /*!< Button power on */
+ #define DEV_SM_BBM_BOOT_ALARM     BIT32(2U)  /*!< RTC alarm powered on */
+ #define DEV_SM_BBM_BOOT_ROLLOVER  BIT32(3U)  /*!< RTC rollover powered on */
++#define DEV_SM_BBM_SHUTDOWN_BUTTON   BIT32(4U)  /*!< Button shutdown */
+ /** @} */
+ 
+ /* Types */
+diff --git a/devices/MIMX95/sm/dev_sm_bbm.h b/devices/MIMX95/sm/dev_sm_bbm.h
+index 24dc6be..b845819 100755
+--- a/devices/MIMX95/sm/dev_sm_bbm.h
++++ b/devices/MIMX95/sm/dev_sm_bbm.h
+@@ -101,6 +101,7 @@
+ #define DEV_SM_BBM_BOOT_BUTTON    BIT32(1U)  /*!< Button power on */
+ #define DEV_SM_BBM_BOOT_ALARM     BIT32(2U)  /*!< RTC alarm powered on */
+ #define DEV_SM_BBM_BOOT_ROLLOVER  BIT32(3U)  /*!< RTC rollover powered on */
++#define DEV_SM_BBM_SHUTDOWN_BUTTON   BIT32(4U)  /*!< Button shutdown */
+ /** @} */
+ 
+ /* Types */
+diff --git a/devices/simu/sm/dev_sm_bbm.h b/devices/simu/sm/dev_sm_bbm.h
+index 24b9e59..98861bc 100755
+--- a/devices/simu/sm/dev_sm_bbm.h
++++ b/devices/simu/sm/dev_sm_bbm.h
+@@ -97,6 +97,7 @@
+ #define DEV_SM_BBM_BOOT_BUTTON    BIT32(1U)  /*!< Button power on */
+ #define DEV_SM_BBM_BOOT_ALARM     BIT32(2U)  /*!< RTC alarm powered on */
+ #define DEV_SM_BBM_BOOT_ROLLOVER  BIT32(3U)  /*!< RTC rollover powered on */
++#define DEV_SM_BBM_SHUTDOWN_BUTTON   BIT32(4U)  /*!< Button shutdown */
+ /** @} */
+ 
+ /* Types */
+diff --git a/sm/lmm/lmm_bbm.c b/sm/lmm/lmm_bbm.c
+index 27d8c5d..19daea1 100755
+--- a/sm/lmm/lmm_bbm.c
++++ b/sm/lmm/lmm_bbm.c
+@@ -270,10 +270,16 @@ void LMM_BbmButtonEvent(void)
+         {
+             .event = LMM_TRIGGER_BUTTON,
+         };
++        uint32_t lmState = 0U;
++        int32_t errStatus = 0;
+ 
+-        /* Boot LM */
+-        if ((g_lmmConfig[dstLm].autoBoot == LMM_AUTO_BUTTON)
++        /* Get current LM state */
++        (void) LM_SystemLmStatus(0U, dstLm, &lmState, &errStatus);
++
++        /* Boot LM if configured for auto-boot and currently off */
++        if (((g_lmmConfig[dstLm].autoBoot == LMM_AUTO_BUTTON)
+             || (g_lmmConfig[dstLm].autoBoot == LMM_AUTO_BOTH))
++            && (lmState == LMM_STATE_LM_OFF))
+         {
+             lmm_rst_rec_t bootRec = DEV_SM_RST_REC_BBM;
+ 
+@@ -283,6 +289,22 @@ void LMM_BbmButtonEvent(void)
+ 
+             (void) LMM_SystemLmBoot(0U, 0U, dstLm, &bootRec);
+         }
++        /* Shutdown LM if currently running (graceful shutdown) */
++        else if (lmState == LMM_STATE_LM_ON)
++        {
++            lmm_rst_rec_t shutdownRec = DEV_SM_RST_REC_BBM;
++
++            /* Reason is BBM button */
++            shutdownRec.errId = DEV_SM_BBM_SHUTDOWN_BUTTON;
++            shutdownRec.validErr = true;
++
++            (void) LMM_SystemLmShutdown(0U, 0U, dstLm, true, 
++                &shutdownRec);
++        }
++        else
++        {
++            ; /* LM in other state (suspend/powered), just send notification */
++        }
+ 
+         /* Send notification */
+         (void) LMM_RpcNotificationTrigger(dstLm, &trigger);

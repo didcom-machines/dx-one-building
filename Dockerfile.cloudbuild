@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+# Stripped Dockerfile for Google Cloud Build - Yocto/Bitbake builds only
+# Compatible with Yocto Scarthgap 5.0.15 and later versions
+
+FROM ubuntu:22.04
+
+WORKDIR /workspace
+
+# Setup locale
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y locales && \
+    locale-gen "en_US.UTF-8" && \
+    update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8
+
+# Install core Yocto/bitbake dependencies
+RUN apt-get update && apt-get install -y \
+    gawk wget git diffstat unzip texinfo gcc-multilib \
+    build-essential chrpath socat cpio python3 python3-pip python3-pexpect \
+    xz-utils debianutils iputils-ping libsdl1.2-dev xterm \
+    autoconf libtool libglib2.0-dev libarchive-dev \
+    sed cvs subversion coreutils texi2html docbook-utils \
+    help2man make gcc g++ desktop-file-utils libgl1-mesa-dev libglu1-mesa-dev \
+    mercurial automake groff curl lzop asciidoc u-boot-tools dos2unix mtd-utils pv \
+    libncurses5 libncurses5-dev libncursesw5-dev libelf-dev zlib1g-dev bc rename \
+    iproute2 zstd liblz4-tool python-is-python3 file && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install additional development packages for Yocto
+RUN apt-get update && apt-get install -y \
+    python3-cryptography python3-jsonschema python3-pyelftools \
+    python3-yaml swig gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
+    libgnutls28-dev u-boot-tools && \
+    rm -rf /var/lib/apt/lists/*
+
+# Configure git globally (required by repo/bitbake)
+# Cloud Build will override these if needed
+RUN git config --system user.email "builder@cloudbuild.local" && \
+    git config --system user.name "Cloud Builder"
+
+# Install repo tool
+RUN curl https://storage.googleapis.com/git-repo-downloads/repo > /bin/repo && \
+    chmod a+rx /bin/repo
+
+# Make /bin/sh symlink to bash instead of dash
+RUN echo "dash dash/sh boolean false" | debconf-set-selections && \
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash
+
+# Cloud Build runs as root by default, no entrypoint needed
+CMD ["/bin/bash"]

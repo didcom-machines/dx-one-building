@@ -1,0 +1,46 @@
+# Build directories
+build*/
+tmp/
+
+# Downloaded sources and cache
+downloads/
+sstate-cache/
+
+# External layers (fetched by repo tool)
+sources/poky/
+sources/meta-openembedded/
+sources/meta-clang/
+sources/meta-freescale/
+sources/meta-freescale-3rdparty/
+sources/meta-freescale-distro/
+sources/meta-arm/
+sources/meta-qt6/
+sources/meta-browser/
+sources/meta-security/
+sources/meta-timesys/
+sources/meta-virtualization/
+sources/meta-raspberrypi/
+sources/meta-imx/
+sources/meta-nxp-connectivity/
+sources/meta-nxp-demo-experience/
+sources/meta-swupdate/
+sources/meta-mender/
+sources/meta-variscite-*/
+sources/base/
+
+# Repo tool metadata
+.repo/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -1,0 +1,62 @@
+LCONF_VERSION = "7"
+
+BBPATH = "${TOPDIR}"
+BSPDIR := "${@os.path.abspath(os.path.dirname(d.getVar('FILE', True)) + '/../..')}"
+
+BBFILES ?= ""
+
+# Core Yocto layers
+BBLAYERS = " \
+  ${BSPDIR}/sources/poky/meta \
+  ${BSPDIR}/sources/poky/meta-poky \
+  "
+
+# OpenEmbedded layers
+BBLAYERS += " \
+  ${BSPDIR}/sources/meta-openembedded/meta-oe \
+  ${BSPDIR}/sources/meta-openembedded/meta-multimedia \
+  ${BSPDIR}/sources/meta-openembedded/meta-python \
+  ${BSPDIR}/sources/meta-openembedded/meta-gnome \
+  ${BSPDIR}/sources/meta-openembedded/meta-networking \
+  ${BSPDIR}/sources/meta-openembedded/meta-filesystems \
+  "
+
+# Freescale/NXP base layers
+BBLAYERS += " \
+  ${BSPDIR}/sources/meta-freescale \
+  ${BSPDIR}/sources/meta-freescale-3rdparty \
+  ${BSPDIR}/sources/meta-freescale-distro \
+  "
+
+# i.MX layers
+BBLAYERS += " \
+  ${BSPDIR}/sources/meta-imx/meta-imx-bsp \
+  ${BSPDIR}/sources/meta-imx/meta-imx-sdk \
+  ${BSPDIR}/sources/meta-imx/meta-imx-ml \
+  "
+
+# Variscite BSP layers
+BBLAYERS += " \
+  ${BSPDIR}/sources/meta-variscite-bsp-common \
+  ${BSPDIR}/sources/meta-variscite-bsp-imx \
+  ${BSPDIR}/sources/meta-variscite-sdk-common \
+  ${BSPDIR}/sources/meta-variscite-sdk-imx \
+  "
+
+# Additional features (optional - comment out what you don't need)
+BBLAYERS += " \
+  ${BSPDIR}/sources/meta-arm/meta-arm \
+  ${BSPDIR}/sources/meta-arm/meta-arm-toolchain \
+  ${BSPDIR}/sources/meta-qt6 \
+  ${BSPDIR}/sources/meta-browser/meta-chromium \
+  ${BSPDIR}/sources/meta-security/meta-parsec \
+  ${BSPDIR}/sources/meta-security/meta-tpm \
+  ${BSPDIR}/sources/meta-virtualization \
+  ${BSPDIR}/sources/meta-clang \
+  "
+
+# Raspberry Pi BSP layer
+BBLAYERS += "${BSPDIR}/sources/meta-raspberrypi"
+
+# Your custom DX-ONE layer
+BBLAYERS += "${BSPDIR}/sources/meta-dx-one"

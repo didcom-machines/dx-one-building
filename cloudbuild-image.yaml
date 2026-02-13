@@ -1,0 +1,27 @@
+# Google Cloud Build Configuration for Yocto Builds
+# Build and push the custom Yocto build environment
+
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/yocto-builder:22.04'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/yocto-builder:latest'
+      - '-f'
+      - 'Dockerfile.cloudbuild'
+      - '.'
+
+  # Push the image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/yocto-builder:22.04'
+
+images:
+  - 'gcr.io/$PROJECT_ID/yocto-builder:22.04'
+  - 'gcr.io/$PROJECT_ID/yocto-builder:latest'
+
+timeout: '1800s' # 30 minutes for building the container

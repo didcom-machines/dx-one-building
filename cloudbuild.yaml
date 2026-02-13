@@ -1,0 +1,78 @@
+# Main CI/CD Build Trigger for Google Cloud Build
+# Automatically triggered on commits, tags, and pull requests
+
+steps:
+  # Step 1: Determine build type based on trigger
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'determine-build-type'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Git Branch: $BRANCH_NAME"
+        echo "Git Tag: $TAG_NAME"
+        echo "Commit SHA: $COMMIT_SHA"
+        
+        # Determine what type of build to run
+        if [ ! -z "$TAG_NAME" ]; then
+          echo "PRODUCTION" > /workspace/build_type.txt
+          echo "Running PRODUCTION build for release: $TAG_NAME"
+        elif [ "$BRANCH_NAME" = "main" ] || [ "$BRANCH_NAME" = "master" ]; then
+          echo "VALIDATION" > /workspace/build_type.txt
+          echo "Running VALIDATION build for main branch"
+        else
+          echo "VALIDATION" > /workspace/build_type.txt
+          echo "Running VALIDATION build for branch: $BRANCH_NAME"
+        fi
+
+  # Step 2: Build/pull container image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'prepare-container'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if docker pull gcr.io/$PROJECT_ID/yocto-builder:latest 2>/dev/null; then
+          echo "Using cached container"
+        else
+          docker build -t gcr.io/$PROJECT_ID/yocto-builder:latest -f Dockerfile.cloudbuild .
+          docker push gcr.io/$PROJECT_ID/yocto-builder:latest
+        fi
+
+  # Step 3: Initialize sources using your custom manifest
+  - name: 'gcr.io/$PROJECT_ID/yocto-builder:latest'
+    id: 'init-sources'
+    args:
+      - 'bash'
+      - '-c'
+      - |
+        mkdir -p sources
+        cd sources
+        # TODO: Replace with actual repository URL
+        # Example: repo init -u https://github.com/your-org/dx-one-building.git -b main -m .repo/manifests/default.xml
+        repo init -u https://github.com/YOUR_USERNAME/your-repo.git -b main -m .repo/manifests/default.xml
+        repo sync -j8
+    timeout: 3600s
+
+  # Step 4: Trigger appropriate build
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'run-build'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        BUILD_TYPE=$(cat build_type.txt)
+        if [ "$BUILD_TYPE" = "PRODUCTION" ]; then
+          gcloud builds submit --config=cloudbuild/build-all.yaml --substitutions=_BUILD_VERSION=$TAG_NAME
+        else
+          gcloud builds submit --config=cloudbuild/build-image.yaml --substitutions=_MACHINE=dx-one-dart-mx95,_DISTRO=automotive-didcom,_IMAGE=core-image-minimal
+        fi
+
+images:
+  - 'gcr.io/$PROJECT_ID/yocto-builder:latest'
+
+timeout: '21600s'
+options:
+  machineType: 'E2_HIGHCPU_8'
+  diskSizeGb: 200
+  logging: CLOUD_LOGGING_ONLY
