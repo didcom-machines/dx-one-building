@@ -2,6 +2,10 @@
 GCP_PROJECT_ID=onex-didcom
 GCP_REGION=us-central1
 
+# GitHub Repository
+GITHUB_ORG=didcom-machines
+GITHUB_REPO=dx-one-building
+
 # GCS Buckets
 CACHE_BUCKET=onex-didcom-yocto-cache
 ARTIFACTS_BUCKET=onex-didcom-yocto-artifacts

@@ -48,9 +48,8 @@ steps:
       - |
         mkdir -p sources
         cd sources
-        # TODO: Replace with actual repository URL
-        # Example: repo init -u https://github.com/your-org/dx-one-building.git -b main -m .repo/manifests/default.xml
-        repo init -u https://github.com/YOUR_USERNAME/your-repo.git -b main -m .repo/manifests/default.xml
+        # Initialize repo with manifest from GitHub
+        repo init -u https://github.com/didcom-machines/dx-one-building.git -b main -m .repo/manifests/default.xml
         repo sync -j8
     timeout: 3600s
 
