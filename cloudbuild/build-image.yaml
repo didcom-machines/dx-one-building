@@ -27,13 +27,23 @@ steps:
   # Step 1: Restore cache
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'restore-cache'
-    args: ['-m', 'rsync', '-r', 'gs://${PROJECT_ID}-yocto-cache/sstate-cache/', 'sstate-cache/']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        mkdir -p sstate-cache
+        gsutil -m rsync -r gs://${PROJECT_ID}-yocto-cache/sstate-cache/ sstate-cache/ || echo "No cache to restore (first build)"
     timeout: 1800s
     allowFailure: true
 
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'restore-downloads'
-    args: ['-m', 'rsync', '-r', 'gs://${PROJECT_ID}-yocto-cache/downloads/', 'downloads/']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        mkdir -p downloads
+        gsutil -m rsync -r gs://${PROJECT_ID}-yocto-cache/downloads/ downloads/ || echo "No downloads cache to restore"
     timeout: 1800s
     allowFailure: true
 
