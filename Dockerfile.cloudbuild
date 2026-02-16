@@ -27,8 +27,8 @@ RUN apt-get update && apt-get install -y \
     help2man make gcc g++ desktop-file-utils libgl1-mesa-dev libglu1-mesa-dev \
     mercurial automake groff curl lzop asciidoc u-boot-tools dos2unix mtd-utils pv \
     libncurses5 libncurses5-dev libncursesw5-dev libelf-dev zlib1g-dev bc rename \
-    iproute2 zstd liblz4-tool python-is-python3 file && \
-    rm -rf /var/lib/apt/lists/*
+    iproute2 zstd liblz4-tool python-is-python3 file sudo \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install additional development packages for Yocto
 RUN apt-get update && apt-get install -y \
