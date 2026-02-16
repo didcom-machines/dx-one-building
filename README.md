@@ -52,8 +52,9 @@ gcloud builds submit --config=cloudbuild/build-image.yaml \
 dx-one-building/
 ├── .repo/manifests/       # Repo manifest for external layers
 ├── sources/
-│   └── meta-didcom-bsp/   # Custom DIDCOM BSP layer (committed to git)
-├── conf/                  # Build matrix configuration
+│   ├── meta-dx-one/       # DX-ONE layer (basic config)
+│   └── meta-didcom-bsp/   # DIDCOM BSP layer (machines, distros, images)
+├── build-matrix.yaml      # Production build matrix
 ├── templates/             # BitBake configuration templates
 ├── cloudbuild/            # Cloud Build workflow definitions
 └── Dockerfile.cloudbuild  # Yocto build container

@@ -13,12 +13,11 @@ steps:
         
         # Initialize sources if not already done
         if [ ! -d sources/poky ]; then
-          echo "Initializing repo..."
-          mkdir -p sources
-          cd sources
+          echo "Initializing repo from GitHub manifest..."
           
-          # Initialize repo pointing to parent workspace manifest
-          repo init -u /workspace -m .repo/manifests/default.xml
+          # Initialize repo using GitHub as manifest source
+          # Cloud Build checks out code from GitHub, so we use the GitHub URL
+          repo init -u https://github.com/didcom-machines/dx-one-building.git -b main
           repo sync -j8
         else
           echo "Sources already initialized"

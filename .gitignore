@@ -28,8 +28,11 @@ sources/meta-mender/
 sources/meta-variscite-*/
 sources/base/
 
-# Repo tool metadata
-.repo/
+# Repo tool metadata (but keep manifests)
+.repo/*
+!.repo/manifests/
+.repo/manifests/*
+!.repo/manifests/default.xml
 
 # IDE and editor files
 .vscode/

@@ -30,12 +30,12 @@ docker run --rm -it \
         
         # Initialize sources if not already done
         if [ ! -d sources/poky ]; then
-            echo 'Initializing repo...'
-            mkdir -p sources
-            cd sources
-            repo init -u .. -m .repo/manifests/default.xml
+            echo 'Initializing repo from workspace root...'
+            
+            # Initialize repo using local git repository as manifest source
+            # Note: repo init expects a git URL, use file:// for local repos
+            repo init -u file://\$PWD -b main
             repo sync -j8
-            cd ..
         fi
         
         # Create build directory

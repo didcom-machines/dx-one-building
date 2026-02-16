@@ -58,5 +58,8 @@ BBLAYERS += " \
 # Raspberry Pi BSP layer
 BBLAYERS += "${BSPDIR}/sources/meta-raspberrypi"
 
-# Your custom DX-ONE layer
-BBLAYERS += "${BSPDIR}/sources/meta-dx-one"
+# Your custom DX-ONE layers
+BBLAYERS += " \
+  ${BSPDIR}/sources/meta-dx-one \
+  ${BSPDIR}/sources/meta-didcom-bsp \
+  "

@@ -1,8 +1,8 @@
 # Build all production images for a release
-# Reads conf/images.yaml to determine what to build
+# Reads build-matrix.yaml to determine what to build
 
 steps:
-  # Step 1: Parse build matrix from images.yaml
+  # Step 1: Parse build matrix from build-matrix.yaml
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'generate-build-matrix'
     entrypoint: 'bash'
@@ -13,9 +13,9 @@ steps:
         wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
         chmod +x /usr/local/bin/yq
         
-        # Parse production builds from conf/images.yaml
-        echo "Parsing conf/images.yaml for production builds..."
-        yq eval '.build_matrix.production[] | .machine + ":" + .distro + ":" + .image' conf/images.yaml > /workspace/build-matrix.txt
+        # Parse production builds from build-matrix.yaml
+        echo "Parsing build-matrix.yaml for production builds..."
+        yq eval '.production[] | .machine + ":" + .distro + ":" + .image' build-matrix.yaml > /workspace/build-matrix.txt
         
         echo "Production build matrix generated:"
         cat /workspace/build-matrix.txt

@@ -46,10 +46,10 @@ steps:
       - 'bash'
       - '-c'
       - |
-        mkdir -p sources
-        cd sources
-        # Initialize repo with manifest from GitHub
-        repo init -u https://github.com/didcom-machines/dx-one-building.git -b main -m .repo/manifests/default.xml
+        cd /workspace
+        # Initialize repo using GitHub as manifest source
+        # Repo will clone the manifest repo and use default.xml
+        repo init -u https://github.com/didcom-machines/dx-one-building.git -b main
         repo sync -j8
     timeout: 3600s
 
@@ -64,7 +64,7 @@ steps:
         if [ "$BUILD_TYPE" = "PRODUCTION" ]; then
           gcloud builds submit --config=cloudbuild/build-all.yaml --substitutions=_BUILD_VERSION=$TAG_NAME
         else
-          gcloud builds submit --config=cloudbuild/build-image.yaml --substitutions=_MACHINE=dx-one-dart-mx8mp,_DISTRO=automotive-infotainment,_IMAGE=core-image-minimal
+          gcloud builds submit --config=cloudbuild/build-image.yaml --substitutions=_MACHINE=dx-one-dart-mx95,_DISTRO=automotive-infotainment,_IMAGE=core-image-minimal
         fi
 
 images:

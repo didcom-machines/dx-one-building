@@ -1,0 +1,27 @@
+# Build Matrix Configuration
+# Defines which images to build for which machines in production releases
+#
+# Validation builds (on commit): Single configuration defined in cloudbuild.yaml
+# Production builds (on tag): All configurations defined here
+
+production:
+  # Primary platform: i.MX95
+  - machine: dx-one-dart-mx95
+    distro: automotive-infotainment
+    image: automotive-infotainment-image
+    
+  - machine: dx-one-dart-mx95
+    distro: automotive-infotainment
+    image: siiab-ejecutivo-image
+    
+  # Secondary platform: i.MX8M Plus
+  - machine: dx-one-dart-mx8mp
+    distro: automotive-infotainment
+    image: automotive-infotainment-image
+
+# Development/validation builds (optional)
+validation:
+  # Quick validation build
+  - machine: dx-one-dart-mx95
+    distro: automotive-infotainment
+    image: core-image-minimal
