@@ -2,6 +2,23 @@
 # Called by main cloudbuild.yaml or manually
 
 steps:
+  # Step -1: Fix workspace permissions for yocto user
+  - name: 'gcr.io/${PROJECT_ID}/yocto-builder:latest'
+    id: 'fix-permissions'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Run as root to fix permissions
+        sudo chown -R yocto:yocto /workspace
+        
+        # Fix .netrc permissions if it exists
+        if [ -f /builder/home/.netrc ]; then
+          sudo chmod 600 /builder/home/.netrc
+          sudo chown yocto:yocto /builder/home/.netrc
+        fi
+    timeout: 300s
+
   # Step 0: Initialize sources using repo
   - name: 'gcr.io/${PROJECT_ID}/yocto-builder:latest'
     id: 'init-sources'

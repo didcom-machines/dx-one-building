@@ -50,5 +50,15 @@ RUN curl https://storage.googleapis.com/git-repo-downloads/repo > /bin/repo && \
 RUN echo "dash dash/sh boolean false" | debconf-set-selections && \
     DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash
 
-# Cloud Build runs as root by default, no entrypoint needed
+# Create yocto user (BitBake cannot run as root)
+RUN groupadd -g 1000 yocto && \
+    useradd -u 1000 -g 1000 -m -s /bin/bash yocto && \
+    echo "yocto ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# Set up workspace ownership
+RUN chown -R yocto:yocto /workspace
+
+# Switch to yocto user
+USER yocto
+
 CMD ["/bin/bash"]
