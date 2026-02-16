@@ -17,6 +17,20 @@ ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8
 
+# Install sudo and openssl early (needed for user setup)
+RUN apt-get update && apt-get install -y sudo openssl apt-utils
+
+# Create yocto user early (following Variscite pattern)
+ENV USER=yocto USER_ID=1000 USER_GID=1000
+RUN groupadd --gid "${USER_GID}" "${USER}" && \
+    useradd \
+      --uid ${USER_ID} \
+      --gid ${USER_GID} \
+      --create-home \
+      --shell /bin/bash \
+      ${USER} && \
+    echo "yocto ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
 # Install core Yocto/bitbake dependencies
 RUN apt-get update && apt-get install -y \
     gawk wget git diffstat unzip texinfo gcc-multilib \
@@ -27,7 +41,7 @@ RUN apt-get update && apt-get install -y \
     help2man make gcc g++ desktop-file-utils libgl1-mesa-dev libglu1-mesa-dev \
     mercurial automake groff curl lzop asciidoc u-boot-tools dos2unix mtd-utils pv \
     libncurses5 libncurses5-dev libncursesw5-dev libelf-dev zlib1g-dev bc rename \
-    iproute2 zstd liblz4-tool python-is-python3 file sudo \
+    iproute2 zstd liblz4-tool python-is-python3 file \
     && rm -rf /var/lib/apt/lists/*
 
 # Install additional development packages for Yocto
@@ -50,15 +64,10 @@ RUN curl https://storage.googleapis.com/git-repo-downloads/repo > /bin/repo && \
 RUN echo "dash dash/sh boolean false" | debconf-set-selections && \
     DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash
 
-# Create yocto user (BitBake cannot run as root)
-RUN groupadd -g 1000 yocto && \
-    useradd -u 1000 -g 1000 -m -s /bin/bash yocto && \
-    echo "yocto ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Set up workspace ownership
-RUN chown -R yocto:yocto /workspace
-
-# Switch to yocto user
-USER yocto
-
+# Set entrypoint to switch to yocto user automatically
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["/bin/bash"]

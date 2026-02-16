@@ -2,24 +2,7 @@
 # Called by main cloudbuild.yaml or manually
 
 steps:
-  # Step -1: Fix workspace permissions for yocto user
-  - name: 'gcr.io/${PROJECT_ID}/yocto-builder:latest'
-    id: 'fix-permissions'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Run as root to fix permissions
-        sudo chown -R yocto:yocto /workspace
-        
-        # Fix .netrc permissions if it exists
-        if [ -f /builder/home/.netrc ]; then
-          sudo chmod 600 /builder/home/.netrc
-          sudo chown yocto:yocto /builder/home/.netrc
-        fi
-    timeout: 300s
-
-  # Step 0: Initialize sources using repo
+  # Step 0: Initialize sources using repo (entrypoint handles user switching)
   - name: 'gcr.io/${PROJECT_ID}/yocto-builder:latest'
     id: 'init-sources'
     args:
@@ -33,7 +16,6 @@ steps:
           echo "Initializing repo from GitHub manifest..."
           
           # Initialize repo using GitHub as manifest source
-          # Cloud Build checks out code from GitHub, so we use the GitHub URL
           repo init -u https://github.com/didcom-machines/dx-one-building.git -b main
           repo sync -j8
         else
@@ -93,7 +75,7 @@ steps:
         
         echo "Configuration ready for ${_MACHINE} / ${_DISTRO} / ${_IMAGE}"
 
-  # Step 3: Run bitbake
+  # Step 3: Run bitbake (entrypoint ensures non-root execution)
   - name: 'gcr.io/${PROJECT_ID}/yocto-builder:latest'
     id: 'bitbake-build'
     args:
