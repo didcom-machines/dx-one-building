@@ -58,6 +58,11 @@ BBLAYERS += " \
 # Raspberry Pi BSP layer
 BBLAYERS += "${BSPDIR}/sources/meta-raspberrypi"
 
+# Mender OTA update layers
+BBLAYERS += " \
+  ${BSPDIR}/sources/meta-mender/meta-mender-core \
+  "
+
 # Your custom DX-ONE layers
 BBLAYERS += " \
   ${BSPDIR}/sources/meta-dx-one \
