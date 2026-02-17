@@ -53,7 +53,7 @@
 
   <!-- Variscite BSP layers -->
   <project name="meta-variscite-bsp-common" remote="variscite" path="sources/meta-variscite-bsp-common" revision="c859d37a8635af79ce064e9c77af282a07987998" upstream="scarthgap_6.6.52-2.2.2_var01"/>
-  <project name="meta-variscite-bsp-imx" remote="variscite" path="sources/meta-variscite-bsp-imx" revision="fb51615f314aab223571b6f4107e64449e16d3cc" upstream="scarthgap_6.6.52-2.2.2_var01"/>
+  <project name="meta-variscite-bsp-imx" remote="variscite" path="sources/meta-variscite-bsp-imx" revision="4d4e6d837b26c6e95dd8053bd152fde3ec3b7d2d" upstream="walnascar_6.12.20-2.0.0_var01"/>
   <project name="meta-variscite-hab" remote="variscite" path="sources/meta-variscite-hab" revision="949557e79104bfc99f15d9787a9ca853bf939128" upstream="scarthgap_6.6.52-2.2.2_var01"/>
   <project name="meta-variscite-sdk-common" remote="variscite" path="sources/meta-variscite-sdk-common" revision="a8a35c2e8767ffcf14ec9a6cf9b9c8c15ff71241" upstream="scarthgap_6.6.52-2.2.2_var01"/>
   <project name="meta-variscite-sdk-imx" remote="variscite" path="sources/meta-variscite-sdk-imx" revision="27b7f5619616a7181785f0a701d67723c485afc2" upstream="scarthgap_6.6.52-2.2.2_var01">
