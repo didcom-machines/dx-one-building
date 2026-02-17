@@ -48,6 +48,26 @@ BUILDHISTORY_COMMIT = "1"
 
 # Parallelism - adjust based on your build machine
 # For Cloud Build with E2_HIGHCPU_32: 32 cores
+BB_NUMBER_THREADS ?= "${@oe.utils.cpu_count()}"
+PARALLEL_MAKE ?= "-j ${@oe.utils.cpu_count()}"
+
+# Production build settings (override for production)
+# BB_NUMBER_THREADS = "20"
+# PARALLEL_MAKE = "-j 12"
+
+# Mender OTA configuration
+# Server configuration - set in CI/CD or per-build
+# MENDER_SERVER_URL = "https://hosted.mender.io"
+# MENDER_TENANT_TOKEN = "your-token-here"
+# MENDER_DEVICE_TYPE = "siiab-ejecutivo"
+
+# Alternative: Use local Mender server
+# MENDER_SERVER_URL = "https://mender.your-domain.com"
+
+# Storage device for Mender (set per machine if needed)
+# MENDER_STORAGE_DEVICE = "/dev/mmcblk1"
+# MENDER_BOOT_PART_SIZE_MB = "64"
+# MENDER_DATA_PART_SIZE_MB = "1024"
 # BB_NUMBER_THREADS ?= "32"
 # PARALLEL_MAKE ?= "-j 32"
 
